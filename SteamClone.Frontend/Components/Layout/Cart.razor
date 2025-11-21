@@ -1,0 +1,64 @@
+@page "/cart"
+@inject ICartService CartService
+@inject NavigationManager Nav
+
+<MudText Typo="Typo.h3" Class="mb-4">Your Cart</MudText>
+
+@if (cartItems == null)
+{
+    <MudProgressCircular Indeterminate="true" />
+}
+else if (!cartItems.Any())
+{
+    <MudAlert Severity="Severity.Info">Your cart is empty.</MudAlert>
+}
+else
+{
+    <MudTable Items="@cartItems" Hover="true">
+        <HeaderContent>
+            <MudTh>Game</MudTh>
+            <MudTh>Price</MudTh>
+            <MudTh>Quantity</MudTh>
+            <MudTh>Total</MudTh>
+            <MudTh>Actions</MudTh>
+        </HeaderContent>
+        <RowTemplate>
+            <MudTd DataLabel="Game">@context.Title</MudTd>
+            <MudTd DataLabel="Price">$@context.Price</MudTd>
+            <MudTd DataLabel="Quantity">@context.Quantity</MudTd>
+            <MudTd DataLabel="Total">$@(context.Price* context.Quantity)</MudTd>
+            <MudTd>
+                <MudIconButton Icon="@Icons.Material.Filled.Add" OnClick="@(() => UpdateQty(context, 1))" />
+                <MudIconButton Icon="@Icons.Material.Filled.Remove" OnClick="@(() => UpdateQty(context, -1))" />
+            </MudTd>
+        </RowTemplate>
+    </MudTable>
+
+    <div class="d-flex justify-end mt-4">
+        <MudText Typo="Typo.h5" Class="mr-4">Total: $@cartItems.Sum(x => x.Price * x.Quantity)</MudText>
+        <MudButton Variant="Variant.Filled" Color="Color.Success" Href="/checkout">Checkout</MudButton>
+    </div>
+}
+
+@code {
+    private List<CartItemDto>? cartItems;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCart();
+    }
+
+    private async Task LoadCart()
+    {
+        cartItems = await CartService.GetCartAsync();
+    }
+
+    private async Task UpdateQty(CartItemDto item, int change)
+    {
+        var newQty = item.Quantity + change;
+        if (newQty < 0) return;
+
+        await CartService.UpdateQuantityAsync(item.GameId, newQty);
+        await LoadCart();
+    }
+}
